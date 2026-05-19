@@ -24,6 +24,7 @@ async function run() {
 
     const database = client.db('TutorsDataBase');
     const tutorsDataCollection = database.collection('tutorsData');
+    const myBookingDataCollection = database.collection('my-booking-data');
 
     // all api
     app.get('/tutors', async (req, res) => {
@@ -61,6 +62,34 @@ async function run() {
         _id: new ObjectId(id),
       });
       res.send(tutorsData);
+    });
+
+    app.post('/myBooking', async (req, res) => {
+      const newBooking = req.body;
+
+      // 1. insert booking
+      const bookingResult = await myBookingDataCollection.insertOne(newBooking);
+
+      // 2. tutor id
+      const tutorId = newBooking.tutorId;
+
+      if (!tutorId) {
+        return res.send({
+          acknowledged: true,
+          warning: 'Booking saved but tutorId missing',
+        });
+      }
+
+      // 3. slots decrease
+      await tutorsDataCollection.updateOne(
+        { _id: new ObjectId(tutorId) },
+        { $inc: { slots: -1 } },
+      );
+
+      res.send({
+        acknowledged: true,
+        bookingId: bookingResult.insertedId,
+      });
     });
 
     console.log(
