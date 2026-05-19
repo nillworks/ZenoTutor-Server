@@ -36,6 +36,13 @@ async function run() {
       });
     });
 
+    // post tutor api
+    app.post('/tutors', async (req, res) => {
+      const newTutors = req.body;
+      const result = await tutorsDataCollection.insertOne(newTutors);
+      res.send(result);
+    });
+
     // limit Data AvailableTutors
     app.get('/topTutors', async (req, res) => {
       const cursor = tutorsDataCollection.find().limit(6);
