@@ -64,6 +64,17 @@ async function run() {
       res.send(tutorsData);
     });
 
+    // My booking Data get api
+    app.get('/myBooking', async (req, res) => {
+      const cursor = myBookingDataCollection.find();
+      const result = await cursor.toArray();
+      res.send({
+        massage: 'successfully tutors data get',
+        ok: true,
+        tutors: result,
+      });
+    });
+
     app.post('/myBooking', async (req, res) => {
       const newBooking = req.body;
 
