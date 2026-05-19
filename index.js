@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -45,6 +45,15 @@ async function run() {
         ok: true,
         tutors: result,
       });
+    });
+
+    // single tutors Api
+    app.get('/tutors/:id', async (req, res) => {
+      const id = req.params.id;
+      const tutorsData = await tutorsDataCollection.findOne({
+        _id: new ObjectId(id),
+      });
+      res.send(tutorsData);
     });
 
     console.log(
