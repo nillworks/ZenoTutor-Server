@@ -89,6 +89,50 @@ async function run() {
       res.send(tutorsData);
     });
 
+    // My booking Data get api
+    app.get('/myBooking/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        'accountInfo.id': id,
+      };
+      const cursor = myBookingDataCollection.find(query);
+      const result = await cursor.toArray();
+      res.send({
+        massage: 'successfully myBooking data get',
+        ok: true,
+        myBooking: result,
+      });
+    });
+
+    // My booking Data post api
+    app.post('/myBooking', async (req, res) => {
+      const newBooking = req.body;
+
+      // 1. insert booking
+      const bookingResult = await myBookingDataCollection.insertOne(newBooking);
+
+      // 2. tutor id
+      const tutorId = newBooking.tutorId;
+
+      if (!tutorId) {
+        return res.send({
+          acknowledged: true,
+          warning: 'Booking saved but tutorId missing',
+        });
+      }
+
+      // 3. slots decrease
+      await tutorsDataCollection.updateOne(
+        { _id: new ObjectId(tutorId) },
+        { $inc: { slots: -1 } },
+      );
+
+      res.send({
+        acknowledged: true,
+        bookingId: bookingResult.insertedId,
+      });
+    });
+
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB',
     );
