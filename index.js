@@ -58,6 +58,40 @@ async function run() {
       res.send(result);
     });
 
+    app.delete('/tutors/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const query = {
+        _id: new ObjectId(id),
+      };
+
+      const deleteTutorData = await tutorsDataCollection.deleteOne(query);
+
+      res.send(deleteTutorData);
+    });
+
+    // Update Tutors Data
+    app.patch('/tutors/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {
+        _id: new ObjectId(id),
+      };
+
+      const modifiedTutor = req.body;
+      const updateDocument = {
+        $set: {
+          ...modifiedTutor,
+        },
+      };
+
+      const result = await tutorsDataCollection.updateOne(
+        filter,
+        updateDocument,
+      );
+
+      res.send(result);
+    });
+
     // limit Data AvailableTutors
     app.get('/topTutors', async (req, res) => {
       const cursor = tutorsDataCollection.find().limit(6);
@@ -66,17 +100,6 @@ async function run() {
         massage: 'successfully top tutors data get',
         ok: true,
         tutors: result,
-      });
-    });
-
-    // My booking Data get api
-    app.get('/myBooking', async (req, res) => {
-      const cursor = myBookingDataCollection.find();
-      const result = await cursor.toArray();
-      res.send({
-        massage: 'successfully myBooking data get',
-        ok: true,
-        myBooking: result,
       });
     });
 
@@ -131,6 +154,32 @@ async function run() {
         acknowledged: true,
         bookingId: bookingResult.insertedId,
       });
+    });
+
+    app.patch('/myBooking/:id', async (req, res) => {
+      const id = req.params.id;
+
+      // const filter = {
+      //   'accountInfo.id': id,
+      // };
+
+      // const modifiedTutor = req.body;
+      // const updateDocument = {
+      //   $set: {
+      //     BookingStatus: false,
+      //   },
+      // };
+
+      const result = await myBookingDataCollection.updateOne(
+        { _id: id },
+        {
+          $set: {
+            BookingStatus: false,
+          },
+        },
+      );
+
+      res.send(result);
     });
 
     console.log(
