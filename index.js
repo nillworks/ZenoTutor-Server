@@ -3,6 +3,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const dotEnv = require('dotenv');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 const port = process.env.PORT || 8000;
 
 dotEnv.config();
@@ -17,10 +18,36 @@ const client = new MongoClient(process.env.DB_URI, {
   },
 });
 
+const jwks = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
+
+// auth
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader.split(' ')[1];
+  console.log(token);
+
+  if (!authHeader) {
+    return res.status(401).json({ message: 'unauthorized' });
+  }
+  if (!token) {
+    return res.status(401).json({ message: 'unauthorized' });
+  }
+
+  // verify token
+  try {
+    const { payload } = await jwtVerify(token, jwks);
+    next();
+  } catch (error) {
+    return res.status(403).json({ massage: 'forbidden' });
+  }
+};
+
 async function run() {
   try {
-    await client.connect();
-    await client.db('admin').command({ ping: 1 });
+    // await client.connect();
+    // await client.db('admin').command({ ping: 1 });
 
     const database = client.db('TutorsDataBase');
     const tutorsDataCollection = database.collection('tutorsData');
@@ -38,7 +65,7 @@ async function run() {
     });
 
     // all api
-    app.get('/tutorsList/:id', async (req, res) => {
+    app.get('/tutorsList/:id', verifyToken, async (req, res) => {
       const userId = req.params.id;
       const query = {
         'accountInfo.id': userId,
@@ -52,13 +79,13 @@ async function run() {
     });
 
     // post tutor api
-    app.post('/tutors', async (req, res) => {
+    app.post('/tutors', verifyToken, async (req, res) => {
       const newTutors = req.body;
       const result = await tutorsDataCollection.insertOne(newTutors);
       res.send(result);
     });
 
-    app.delete('/tutors/:id', async (req, res) => {
+    app.delete('/tutors/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
 
       const query = {
@@ -71,7 +98,7 @@ async function run() {
     });
 
     // Update Tutors Data
-    app.patch('/tutors/:id', async (req, res) => {
+    app.patch('/tutors/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const filter = {
         _id: new ObjectId(id),
@@ -104,7 +131,7 @@ async function run() {
     });
 
     // single tutors Api
-    app.get('/tutors/:id', async (req, res) => {
+    app.get('/tutors/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const tutorsData = await tutorsDataCollection.findOne({
         _id: new ObjectId(id),
@@ -113,7 +140,7 @@ async function run() {
     });
 
     // My booking Data get api
-    app.get('/myBooking/:id', async (req, res) => {
+    app.get('/myBooking/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = {
         'accountInfo.id': id,
@@ -128,8 +155,9 @@ async function run() {
     });
 
     // My booking Data post api
-    app.post('/myBooking', async (req, res) => {
+    app.post('/myBooking', verifyToken, async (req, res) => {
       const newBooking = req.body;
+      console.log(newBooking);
 
       // 1. insert booking
       const bookingResult = await myBookingDataCollection.insertOne(newBooking);
@@ -156,22 +184,11 @@ async function run() {
       });
     });
 
-    app.patch('/myBooking/:id', async (req, res) => {
+    app.patch('/myBooking/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
 
-      // const filter = {
-      //   'accountInfo.id': id,
-      // };
-
-      // const modifiedTutor = req.body;
-      // const updateDocument = {
-      //   $set: {
-      //     BookingStatus: false,
-      //   },
-      // };
-
       const result = await myBookingDataCollection.updateOne(
-        { _id: id },
+        { _id: new ObjectId(id) },
         {
           $set: {
             BookingStatus: false,
@@ -181,10 +198,6 @@ async function run() {
 
       res.send(result);
     });
-
-    console.log(
-      'Pinged your deployment. You successfully connected to MongoDB',
-    );
   } finally {
     // await client.close();
   }
