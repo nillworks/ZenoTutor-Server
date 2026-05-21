@@ -26,7 +26,6 @@ const jwks = createRemoteJWKSet(
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader.split(' ')[1];
-  console.log(token);
 
   if (!authHeader) {
     return res.status(401).json({ message: 'unauthorized' });
@@ -55,10 +54,34 @@ async function run() {
 
     // all api
     app.get('/tutors', async (req, res) => {
-      const cursor = tutorsDataCollection.find();
-      const result = await cursor.toArray();
+      const search = req.query.search || '';
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
+
+      let query = {};
+
+      // SEARCH
+      if (search) {
+        query.name = { $regex: search, $options: 'i' };
+      }
+
+      // DATE FILTER (STRING BASED FIX)
+      if (startDate || endDate) {
+        query.sessionStartDate = {};
+
+        if (startDate) {
+          query.sessionStartDate.$gte = startDate;
+        }
+
+        if (endDate) {
+          query.sessionStartDate.$lte = endDate;
+        }
+      }
+
+      const result = await tutorsDataCollection.find(query).toArray();
+
       res.send({
-        massage: 'successfully tutors data get',
+        message: 'successfully tutors data get',
         ok: true,
         tutors: result,
       });
