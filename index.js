@@ -180,22 +180,43 @@ async function run() {
     // My booking Data post api
     app.post('/myBooking', verifyToken, async (req, res) => {
       const newBooking = req.body;
-      console.log(newBooking);
+      const tutorId = req.body.tutorId;
+      const userId = req.body.accountInfo.id;
+      const BookingStatus = req.body.BookingStatus === true;
+      // const { tutorId, userEmail } = newBooking;
 
-      // 1. insert booking
-      const bookingResult = await myBookingDataCollection.insertOne(newBooking);
+      // 1. check existing active booking
+      const existingBooking = await myBookingDataCollection.findOne({
+        tutorId: tutorId,
+        'accountInfo.id': newBooking.accountInfo.id,
+        BookingStatus: true,
+      });
 
-      // 2. tutor id
-      const tutorId = newBooking.tutorId;
-
-      if (!tutorId) {
-        return res.send({
-          acknowledged: true,
-          warning: 'Booking saved but tutorId missing',
+      if (existingBooking) {
+        return res.status(400).send({
+          message: 'You already booked this tutor',
+          BookedAlready: true,
         });
       }
 
-      // 3. slots decrease
+      // 2. check slots
+      const tutor = await tutorsDataCollection.findOne({
+        _id: new ObjectId(tutorId),
+      });
+
+      if (!tutor || tutor.slots <= 0) {
+        return res.status(400).send({
+          message: 'No slots available',
+        });
+      }
+
+      // 3. insert booking
+      const bookingResult = await myBookingDataCollection.insertOne({
+        ...newBooking,
+        BookingStatus: true, // MUST
+      });
+
+      // 4. decrease slot
       await tutorsDataCollection.updateOne(
         { _id: new ObjectId(tutorId) },
         { $inc: { slots: -1 } },
@@ -210,16 +231,34 @@ async function run() {
     app.patch('/myBooking/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
 
-      const result = await myBookingDataCollection.updateOne(
+      const booking = await myBookingDataCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      if (!booking) {
+        return res.status(404).send({ message: 'Booking not found' });
+      }
+
+      // already cancelled
+      if (!booking.BookingStatus) {
+        return res.send({ message: 'Already cancelled' });
+      }
+
+      // 1. cancel booking
+      await myBookingDataCollection.updateOne(
         { _id: new ObjectId(id) },
         {
-          $set: {
-            BookingStatus: false,
-          },
+          $set: { BookingStatus: false },
         },
       );
 
-      res.send(result);
+      // 2. increase slot
+      await tutorsDataCollection.updateOne(
+        { _id: new ObjectId(booking.tutorId) },
+        { $inc: { slots: 1 } },
+      );
+
+      res.send({ message: 'Booking cancelled successfully' });
     });
   } finally {
     // await client.close();
