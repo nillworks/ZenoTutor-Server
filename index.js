@@ -23,23 +23,43 @@ const jwks = createRemoteJWKSet(
 );
 
 // auth
+// const verifyToken = async (req, res, next) => {
+//   const authHeader = req?.headers?.authorization;
+//   const token = authHeader.split(' ')[1];
+//   console.log(token, 'token from fontent');
+
+//   if (!authHeader) {
+//     return res.status(401).json({ message: 'unauthorized' });
+//   }
+//   if (!token) {
+//     return res.status(401).json({ message: 'unauthorized' });
+//   }
+
+//   // verify token
+//   try {
+//     const { payload } = await jwtVerify(token, jwks);
+//     next();
+//   } catch (error) {
+//     return res.status(403).json({ massage: 'forbidden' });
+//   }
+// };
+
 const verifyToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader.split(' ')[1];
-
+  const authHeader = req?.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ message: 'unauthorized' });
+    return res.status(401).json({ message: 'Unauthorized' });
   }
+  const token = authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json({ message: 'unauthorized' });
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // verify token
   try {
-    const { payload } = await jwtVerify(token, jwks);
+    const { payload } = await jwtVerify(token, JWKS);
+    console.log(payload);
     next();
   } catch (error) {
-    return res.status(403).json({ massage: 'forbidden' });
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 };
 
