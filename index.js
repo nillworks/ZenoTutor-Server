@@ -164,7 +164,7 @@ async function run() {
 
     // limit Data AvailableTutors
     app.get('/topTutors', async (req, res) => {
-      const cursor = tutorsDataCollection.find().limit(6);
+      const cursor = tutorsDataCollection.find().limit(8);
       const result = await cursor.toArray();
       res.send({
         massage: 'successfully top tutors data get',
