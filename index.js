@@ -55,7 +55,7 @@ const verifyToken = async (req, res, next) => {
   }
 
   try {
-    const { payload } = await jwtVerify(token, JWKS);
+    const { payload } = await jwtVerify(token, jwks);
     console.log(payload);
     next();
   } catch (error) {
