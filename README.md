@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white" />
 </p>
 
-# MediQueue Backend
+# ZenoTutor Backend
 
 This is the backend server for the MediQueue tutor booking platform. It provides a REST API for managing tutors, bookings, and authentication using JWT.
 
